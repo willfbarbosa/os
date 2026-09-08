@@ -1,0 +1,24 @@
+{
+  "name": "eletrozone-os",
+  "version": "1.0.0",
+  "description": "Sistema de Gestão de Orçamentos e Recibos EletroZone (os.eletrozone.net.br)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "orcamento",
+    "recibo",
+    "express",
+    "sqlite3",
+    "eletrozone"
+  ],
+  "author": "EletroZone",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "sqlite3": "^5.1.7"
+  }
+}
