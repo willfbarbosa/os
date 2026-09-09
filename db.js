@@ -1,54 +1,50 @@
 /**
- * MÓDULO DE BANCO DE DADOS SQLITE / TURSO - ELETROZONE (os.eletrozone.net.br)
- * Suporte completo a ambiente local, Vercel Serverless (/tmp) e Turso Cloud SQLite.
+ * MÓDULO DE BANCO DE DADOS LIBSQL / SQLITE - ELETROZONE (os.eletrozone.net.br)
+ * 100% compatível com Vercel Serverless Functions, Turso Cloud e desenvolvimento local.
+ * Utiliza @libsql/client em JS puro (sem compilação C++ nativa).
  */
 
-const sqlite3 = require('sqlite3').verbose();
+const { createClient } = require('@libsql/client');
 const path = require('path');
 const os = require('os');
 
-// Detecta se está executando no Vercel Serverless
 const isVercel = process.env.VERCEL || process.env.NOW_BUILDER;
-const DB_PATH = isVercel
-  ? path.join(os.tmpdir(), 'database.sqlite')
-  : path.join(__dirname, 'database.sqlite');
 
-let db;
+// URL de conexão: Turso Cloud > Vercel /tmp > Arquivo local
+let dbUrl = process.env.TURSO_DATABASE_URL;
 
-if (!isVercel || !process.env.TURSO_DATABASE_URL) {
-  db = new sqlite3.Database(DB_PATH);
+if (!dbUrl) {
+  if (isVercel) {
+    const tmpFile = path.join(os.tmpdir(), 'database.sqlite');
+    dbUrl = `file:${tmpFile}`;
+  } else {
+    const localFile = path.join(__dirname, 'database.sqlite');
+    dbUrl = `file:${localFile}`;
+  }
 }
 
-// Promise Wrappers para Facilidade com Async/Await
-const dbRun = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) reject(err);
-      else resolve(this);
-    });
-  });
+const client = createClient({
+  url: dbUrl,
+  authToken: process.env.TURSO_AUTH_TOKEN
+});
+
+// Helper Wrappers assíncronos compatíveis com a aplicação
+const dbRun = async (sql, params = []) => {
+  return await client.execute({ sql, args: params });
 };
 
-const dbAll = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
+const dbAll = async (sql, params = []) => {
+  const res = await client.execute({ sql, args: params });
+  return res.rows || [];
 };
 
-const dbGet = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
+const dbGet = async (sql, params = []) => {
+  const res = await client.execute({ sql, args: params });
+  return (res.rows && res.rows.length > 0) ? res.rows[0] : null;
 };
 
 async function initDatabase() {
-  console.log('🗄️ Inicializando Banco de Dados SQLite:', DB_PATH);
+  console.log('🗄️ Inicializando Banco de Dados LibSQL / SQLite:', dbUrl);
 
   // 1. Tabela de Usuários e Permissões
   await dbRun(`
@@ -63,7 +59,7 @@ async function initDatabase() {
     )
   `);
 
-  // 2. Tabela de Orçamentos (com suporte a fotos)
+  // 2. Tabela de Orçamentos
   await dbRun(`
     CREATE TABLE IF NOT EXISTS quotes (
       id TEXT PRIMARY KEY,
@@ -85,7 +81,7 @@ async function initDatabase() {
     )
   `);
 
-  // Migration de segurança caso a coluna photos ainda não exista em banco legado
+  // Migration de segurança
   try {
     await dbRun(`ALTER TABLE quotes ADD COLUMN photos TEXT`);
   } catch (e) {
@@ -153,12 +149,12 @@ async function initDatabase() {
   `);
 
   await seedDefaultAdmin();
-  console.log('✅ Banco de dados SQLite pronto para uso!');
+  console.log('✅ Banco de dados LibSQL pronto para uso!');
 }
 
 async function seedDefaultAdmin() {
   const count = await dbGet('SELECT COUNT(*) as count FROM users');
-  if (count.count === 0) {
+  if (!count || count.count === 0 || count.count === '0') {
     console.log('👤 Criando usuário administrador mestre padrão...');
     const adminId = 'usr_admin_master';
     const permissions = JSON.stringify({ canCreate: true, canEdit: true, canDelete: true, isAdmin: true });
@@ -174,7 +170,7 @@ async function seedDefaultAdmin() {
 }
 
 module.exports = {
-  db,
+  client,
   dbRun,
   dbAll,
   dbGet,

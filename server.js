@@ -1,5 +1,5 @@
 /**
- * SERVIDOR EXPRESS BACKEND COM SQLITE - ELETROZONE (os.eletrozone.net.br)
+ * SERVIDOR EXPRESS BACKEND COM SQLITE / LIBSQL - ELETROZONE (os.eletrozone.net.br)
  * Suporte a execução Local e Vercel Serverless Functions.
  */
 
@@ -67,7 +67,7 @@ app.post('/api/auth/setup', async (req, res) => {
   try {
     const { fullname, username, password } = req.body;
     const count = await dbGet('SELECT COUNT(*) as count FROM users');
-    if (count.count > 0) {
+    if (count && count.count > 0) {
       return res.status(400).json({ success: false, message: 'Administrador mestre já cadastrado.' });
     }
 
@@ -564,10 +564,10 @@ app.get('/api/metrics', async (req, res) => {
     res.json({
       success: true,
       metrics: {
-        totalQuotes: qCount.count || 0,
-        totalReceipts: rCount.count || 0,
-        totalRevenue: rTotal.total || 0,
-        pendingQuotes: qPending.count || 0
+        totalQuotes: qCount ? (qCount.count || 0) : 0,
+        totalReceipts: rCount ? (rCount.count || 0) : 0,
+        totalRevenue: rTotal ? (rTotal.total || 0) : 0,
+        pendingQuotes: qPending ? (qPending.count || 0) : 0
       }
     });
   } catch (err) {
@@ -595,10 +595,22 @@ app.delete('/api/logs', async (req, res) => {
 
 // Execução local
 if (!process.env.VERCEL) {
-  initDatabase().then(() => {
-    app.listen(PORT, () => {
-      console.log(`🚀 Servidor Eletro Zone WebApp rodando na porta ${PORT}`);
+  function startServer(portToUse) {
+    const server = app.listen(portToUse, () => {
+      console.log(`🚀 Servidor Eletro Zone WebApp rodando na porta ${portToUse}`);
     });
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`⚠️ Porta ${portToUse} em uso. Tentando porta ${portToUse + 1}...`);
+        startServer(portToUse + 1);
+      } else {
+        console.error('❌ Erro no servidor:', err);
+      }
+    });
+  }
+
+  initDatabase().then(() => {
+    startServer(PORT);
   }).catch(err => {
     console.error('❌ Erro fatal ao iniciar banco de dados:', err);
   });
