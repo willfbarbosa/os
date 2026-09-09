@@ -4,6 +4,13 @@
  * Utiliza @libsql/client em JS puro (sem compilação C++ nativa).
  */
 
+try {
+  const dotenv = require('dotenv');
+  dotenv.config();
+  dotenv.config({ path: '.env.local' });
+  dotenv.config({ path: '.env.development.local' });
+} catch (e) {}
+
 const { createClient } = require('@libsql/client');
 const path = require('path');
 const os = require('os');

@@ -19,6 +19,7 @@
   "dependencies": {
     "@libsql/client": "^0.18.0",
     "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
     "express": "^4.19.2",
     "sqlite3": "^5.1.7"
   }
