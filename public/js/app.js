@@ -15,14 +15,29 @@ const app = {
 
   toggleMobileMenu() {
     const sidebar = document.getElementById('app-sidebar');
+    let backdrop = document.getElementById('sidebar-backdrop');
     if (sidebar) {
-      sidebar.classList.toggle('mobile-open');
+      const isOpen = sidebar.classList.toggle('mobile-open');
+      if (isOpen) {
+        if (!backdrop) {
+          backdrop = document.createElement('div');
+          backdrop.id = 'sidebar-backdrop';
+          backdrop.className = 'sidebar-backdrop';
+          backdrop.onclick = () => this.toggleMobileMenu();
+          document.body.appendChild(backdrop);
+        }
+        backdrop.classList.add('active');
+      } else {
+        if (backdrop) backdrop.classList.remove('active');
+      }
     }
   },
 
   switchTab(tabName) {
     const sidebar = document.getElementById('app-sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
     if (sidebar) sidebar.classList.remove('mobile-open');
+    if (backdrop) backdrop.classList.remove('active');
 
     document.querySelectorAll('.tab-page').forEach(page => {
       page.style.display = 'none';
