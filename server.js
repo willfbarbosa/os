@@ -598,8 +598,12 @@ app.delete('/api/logs', async (req, res) => {
   }
 });
 
-// CATCH-ALL ROUTE (Servir index.html para qualquer outra rota)
-app.get('*', (req, res) => {
+// CATCH-ALL SAFE: Apenas para navegação de páginas SPA, protegendo arquivos estáticos 404
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  if (req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/i)) {
+    return res.status(404).send('Not found');
+  }
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
