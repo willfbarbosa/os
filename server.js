@@ -1,6 +1,6 @@
 /**
  * SERVIDOR EXPRESS BACKEND COM SQLITE - ELETROZONE (os.eletrozone.net.br)
- * Serve arquivos estáticos e rotas REST API para Autenticação, Orçamentos e Recibos.
+ * Suporte a execução Local e Vercel Serverless Functions.
  */
 
 const express = require('express');
@@ -17,6 +17,20 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Servir arquivos estáticos do frontend (HTML, CSS, JS, Img)
 app.use(express.static(path.join(__dirname)));
+
+// Garante a inicialização do banco no ambiente Serverless
+let isDbInitialized = false;
+app.use(async (req, res, next) => {
+  if (!isDbInitialized) {
+    try {
+      await initDatabase();
+      isDbInitialized = true;
+    } catch (e) {
+      console.error('Erro ao inicializar DB:', e);
+    }
+  }
+  next();
+});
 
 // Helper de Log Interno
 async function recordLog(type, action, user, description) {
@@ -302,7 +316,6 @@ app.put('/api/quotes/:id', async (req, res) => {
   }
 });
 
-// ALTERAÇÃO RÁPIDA DE STATUS DO ORÇAMENTO (APROVADO / REPROVADO / PENDENTE / CANCELADO)
 app.patch('/api/quotes/:id/status', async (req, res) => {
   try {
     const { status, user } = req.body;
@@ -580,25 +593,15 @@ app.delete('/api/logs', async (req, res) => {
   }
 });
 
-// Inicialização do Servidor
-function startServer(portToUse) {
-  const server = app.listen(portToUse, () => {
-    console.log(`🚀 Servidor Eletro Zone WebApp rodando na porta ${portToUse}`);
-    console.log(`👉 Link de Acesso: http://localhost:${portToUse} (Configurado para os.eletrozone.net.br)`);
-  });
-
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.log(`⚠️ Porta ${portToUse} em uso. Tentando porta ${portToUse + 1}...`);
-      startServer(portToUse + 1);
-    } else {
-      console.error('❌ Erro no servidor:', err);
-    }
+// Execução local
+if (!process.env.VERCEL) {
+  initDatabase().then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Servidor Eletro Zone WebApp rodando na porta ${PORT}`);
+    });
+  }).catch(err => {
+    console.error('❌ Erro fatal ao iniciar banco de dados:', err);
   });
 }
 
-initDatabase().then(() => {
-  startServer(PORT);
-}).catch(err => {
-  console.error('❌ Erro fatal ao iniciar banco de dados:', err);
-});
+module.exports = app;

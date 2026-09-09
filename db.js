@@ -1,13 +1,23 @@
 /**
- * MÓDULO DE BANCO DE DADOS SQLITE - ELETROZONE (os.eletrozone.net.br)
- * Gerencia a inicialização do esquema relacional, relatórios, usuários e auto-seeding.
+ * MÓDULO DE BANCO DE DADOS SQLITE / TURSO - ELETROZONE (os.eletrozone.net.br)
+ * Suporte completo a ambiente local, Vercel Serverless (/tmp) e Turso Cloud SQLite.
  */
 
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const os = require('os');
 
-const DB_PATH = path.join(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(DB_PATH);
+// Detecta se está executando no Vercel Serverless
+const isVercel = process.env.VERCEL || process.env.NOW_BUILDER;
+const DB_PATH = isVercel
+  ? path.join(os.tmpdir(), 'database.sqlite')
+  : path.join(__dirname, 'database.sqlite');
+
+let db;
+
+if (!isVercel || !process.env.TURSO_DATABASE_URL) {
+  db = new sqlite3.Database(DB_PATH);
+}
 
 // Promise Wrappers para Facilidade com Async/Await
 const dbRun = (sql, params = []) => {
@@ -40,7 +50,7 @@ const dbGet = (sql, params = []) => {
 async function initDatabase() {
   console.log('🗄️ Inicializando Banco de Dados SQLite:', DB_PATH);
 
-  // 1. Tabela de Usuários e Permissões (Padrão cadastro_maquinas)
+  // 1. Tabela de Usuários e Permissões
   await dbRun(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
