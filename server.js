@@ -46,6 +46,11 @@ async function recordLog(type, action, user, description) {
   }
 }
 
+// ROTA RAIZ (Servir SPA index.html)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // ============================================================================
 // 1. ROTAS DE AUTENTICAÇÃO E GERENCIAMENTO DE USUÁRIOS
 // ============================================================================
@@ -591,6 +596,11 @@ app.delete('/api/logs', async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+});
+
+// CATCH-ALL ROUTE (Servir index.html para qualquer outra rota)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Execução local
