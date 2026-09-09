@@ -16,6 +16,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Servir arquivos estáticos do frontend (HTML, CSS, JS, Img)
+app.use(express.static(path.join(process.cwd())));
 app.use(express.static(path.join(__dirname)));
 
 // Garante a inicialização do banco no ambiente Serverless
@@ -48,7 +49,7 @@ async function recordLog(type, action, user, description) {
 
 // ROTA RAIZ (Servir SPA index.html)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(process.cwd(), 'index.html'));
 });
 
 // ============================================================================
@@ -604,7 +605,7 @@ app.get('*', (req, res, next) => {
   if (req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/i)) {
     return res.status(404).send('Not found');
   }
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(process.cwd(), 'index.html'));
 });
 
 // Execução local

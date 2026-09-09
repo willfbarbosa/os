@@ -1,9 +1,15 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "css/**, js/**, img/**, index.html"
+    }
+  },
   "rewrites": [
     {
-      "source": "/api/(.*)",
+      "source": "/(.*)",
       "destination": "/api/index.js"
     }
   ]
 }
+
