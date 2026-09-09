@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EletroZone - Orçamentos e Recibos</title>
+  
+  <!-- Fontes & Ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  
+  <!-- Biblioteca HTML2PDF para Geração do Arquivo PDF e Envio via WhatsApp -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+  <!-- TOPBAR MOBILE -->
+  <div class="mobile-topbar">
+    <div class="brand">
+      <img src="/img/logo.png" alt="EletroZone Logo">
+      <div style="font-family:'Outfit',sans-serif; font-weight:800; color:#fff;">Eletro<span style="color:#ef3636;">Zone</span></div>
+    </div>
+    <button class="btn-hamburger" onclick="app.toggleMobileMenu()">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- SIDEBAR DE NAVEGAÇÃO -->
+    <aside class="sidebar" id="app-sidebar">
+      <div class="brand-header">
+        <img src="/img/logo.png" alt="EletroZone Logo">
+        <div>
+          <div class="brand-title">Eletro<span>Zone</span></div>
+          <div class="brand-subtitle">Segurança Eletrônica</div>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" onclick="app.switchTab('dashboard')">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" onclick="app.switchTab('quotes')">
+          <i class="fa-solid fa-file-invoice-dollar"></i>
+          <span>Orçamentos</span>
+        </button>
+        <button class="nav-item" onclick="app.switchTab('receipts')">
+          <i class="fa-solid fa-receipt"></i>
+          <span>Recibos</span>
+        </button>
+        <button class="nav-item" id="nav-users" onclick="app.switchTab('users')">
+          <i class="fa-solid fa-users-gear"></i>
+          <span>Usuários</span>
+        </button>
+        <button class="nav-item" id="nav-logs" onclick="app.switchTab('logs')">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>Auditoria</span>
+        </button>
+      </nav>
+
+      <div class="user-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="sidebar-user-avatar">A</div>
+          <div>
+            <div class="user-name" id="sidebar-user-name">Administrador</div>
+            <div class="user-role" id="sidebar-user-role">ADMIN</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="auth.logout()" title="Sair do sistema">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL (SPA) -->
+    <main class="main-content">
+      
+      <!-- ABA 1: DASHBOARD -->
+      <section id="tab-dashboard" class="tab-page active">
+        <div class="header-top">
+          <div>
+            <h1 class="page-title">Painel de Controle</h1>
+            <p class="page-subtitle">Visão geral dos orçamentos emitidos e recibos gerados</p>
+          </div>
+          <div style="display:flex; gap:0.75rem;">
+            <button class="btn btn-primary" onclick="quotes.openModal()">
+              <i class="fa-solid fa-plus"></i> Novo Orçamento
+            </button>
+            <button class="btn btn-secondary" onclick="receipts.openModal()">
+              <i class="fa-solid fa-receipt"></i> Novo Recibo
+            </button>
+          </div>
+        </div>
+
+        <!-- CARDS DE MÉTRICAS CLICÁVEIS -->
+        <div class="metrics-grid">
+          <div class="metric-card clickable" onclick="app.switchTab('quotes')" title="Clique para abrir orçamentos emitidos">
+            <div class="metric-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+            <div>
+              <div class="metric-value" id="metric-total-quotes">0</div>
+              <div class="metric-label">Orçamentos Emitidos</div>
+            </div>
+          </div>
+
+          <div class="metric-card clickable" onclick="app.switchTab('receipts')" title="Clique para abrir recibos emitidos">
+            <div class="metric-icon"><i class="fa-solid fa-receipt"></i></div>
+            <div>
+              <div class="metric-value" id="metric-total-receipts">0</div>
+              <div class="metric-label">Recibos Emitidos</div>
+            </div>
+          </div>
+
+          <div class="metric-card clickable" onclick="app.switchTab('receipts')" title="Clique para abrir recibos emitidos">
+            <div class="metric-icon" style="color: #10b981;"><i class="fa-solid fa-sack-dollar"></i></div>
+            <div>
+              <div class="metric-value" id="metric-total-revenue">R$ 0,00</div>
+              <div class="metric-label">Total em Recibos</div>
+            </div>
+          </div>
+
+          <div class="metric-card clickable" onclick="app.switchTab('quotes'); quotes.filterStatus('PENDENTE');" title="Clique para filtrar orçamentos pendentes">
+            <div class="metric-icon" style="color: #f59e0b;"><i class="fa-solid fa-hourglass-half"></i></div>
+            <div>
+              <div class="metric-value" id="metric-pending-quotes">0</div>
+              <div class="metric-label">Orçamentos Pendentes</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ORÇAMENTOS RECENTES -->
+        <div class="content-card">
+          <div class="card-header">
+            <h3>Orçamentos Recentes</h3>
+            <button class="btn btn-outline btn-sm" onclick="app.switchTab('quotes')">Ver Todos</button>
+          </div>
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Cliente</th>
+                  <th>Cidade</th>
+                  <th>Total Final</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-recent-quotes-table">
+                <!-- Preenchido via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 2: ORÇAMENTOS -->
+      <section id="tab-quotes" class="tab-page" style="display: none;">
+        <div class="header-top">
+          <div>
+            <h1 class="page-title">Orçamentos</h1>
+            <p class="page-subtitle">Gerencie orçamentos, aprovações e envie propostas para clientes</p>
+          </div>
+          <button class="btn btn-primary" onclick="quotes.openModal()">
+            <i class="fa-solid fa-plus"></i> Criar Orçamento
+          </button>
+        </div>
+
+        <div class="content-card">
+          <div class="card-header">
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="quote-search-input" placeholder="Buscar por cliente, CPF/CNPJ ou código..." onkeyup="quotes.filter()">
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <select class="form-control" id="quote-status-filter" onchange="quotes.filter()" style="width: auto;">
+                <option value="">Todos os Status</option>
+                <option value="PENDENTE">🟡 Pendente</option>
+                <option value="APROVADO">🟢 Aprovado</option>
+                <option value="REPROVADO">🔴 Reprovado</option>
+                <option value="CONVERTIDO">🔵 Convertido em Recibo</option>
+                <option value="CANCELADO">⚪ Cancelado</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Cliente</th>
+                  <th>Whatsapp</th>
+                  <th>Subtotal</th>
+                  <th>Desconto</th>
+                  <th>Total Final</th>
+                  <th>Status</th>
+                  <th>Ações de Aprovação / Gestão</th>
+                </tr>
+              </thead>
+              <tbody id="quotes-table-body">
+                <!-- Preenchido via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 3: RECIBOS -->
+      <section id="tab-receipts" class="tab-page" style="display: none;">
+        <div class="header-top">
+          <div>
+            <h1 class="page-title">Recibos</h1>
+            <p class="page-subtitle">Emissão de comprovantes e recibos de pagamento de serviços</p>
+          </div>
+          <button class="btn btn-primary" onclick="receipts.openModal()">
+            <i class="fa-solid fa-plus"></i> Emitir Recibo
+          </button>
+        </div>
+
+        <div class="content-card">
+          <div class="card-header">
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="receipt-search-input" placeholder="Buscar cliente, código ou CPF/CNPJ..." onkeyup="receipts.filter()">
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Cliente</th>
+                  <th>CPF/CNPJ</th>
+                  <th>Whatsapp</th>
+                  <th>Total Recebido</th>
+                  <th>Data Emissão</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="receipts-table-body">
+                <!-- Preenchido via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 4: USUÁRIOS -->
+      <section id="tab-users" class="tab-page" style="display: none;">
+        <div class="header-top">
+          <div>
+            <h1 class="page-title">Gerenciamento de Usuários</h1>
+            <p class="page-subtitle">Cadastre operadores e administradores do sistema</p>
+          </div>
+          <button class="btn btn-primary" onclick="auth.openUserModal()">
+            <i class="fa-solid fa-user-plus"></i> Novo Usuário
+          </button>
+        </div>
+
+        <div class="content-card">
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Nome Completo</th>
+                  <th>Nome de Usuário</th>
+                  <th>Função</th>
+                  <th>Permissões</th>
+                  <th>Criado Em</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <!-- Preenchido via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 5: LOGS / AUDITORIA -->
+      <section id="tab-logs" class="tab-page" style="display: none;">
+        <div class="header-top">
+          <div>
+            <h1 class="page-title">Logs de Auditoria</h1>
+            <p class="page-subtitle">Histórico de ações e operações realizadas no sistema</p>
+          </div>
+          <button class="btn btn-outline" onclick="app.clearLogs()">
+            <i class="fa-solid fa-trash-can"></i> Limpar Logs
+          </button>
+        </div>
+
+        <div class="content-card">
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Tipo</th>
+                  <th>Ação</th>
+                  <th>Usuário</th>
+                  <th>Descrição</th>
+                </tr>
+              </thead>
+              <tbody id="logs-table-body">
+                <!-- Preenchido via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ============================================================================
+       MODAL DE AUTENTICAÇÃO (LOGIN)
+       ============================================================================ -->
+  <div class="modal-overlay" id="login-modal">
+    <div class="modal-content" style="max-width: 420px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <img src="/img/logo.png" alt="Logo" style="height:36px;">
+          <h3 class="modal-title">Acesso ao Sistema</h3>
+        </div>
+      </div>
+      <div class="modal-body">
+        <form id="login-form" onsubmit="auth.handleLogin(event)">
+          <div class="form-group" style="margin-bottom:1.2rem;">
+            <label for="login-username">Nome de Usuário</label>
+            <input type="text" id="login-username" class="form-control" placeholder="ex: admin" required autofocus>
+          </div>
+          <div class="form-group" style="margin-bottom:1.5rem;">
+            <label for="login-password">Senha</label>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:0.8rem;">
+            <i class="fa-solid fa-lock"></i> Entrar
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================================
+       MODAL DE ORÇAMENTO (CRIAR / EDITAR COM GALERIA E STATUS)
+       ============================================================================ -->
+  <div class="modal-overlay" id="quote-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="quote-modal-title">Novo Orçamento</h3>
+        <button class="modal-close" onclick="quotes.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="quote-form">
+          <input type="hidden" id="quote-id">
+          
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
+            <h4 style="color:var(--text-primary); font-size:0.95rem;">Dados do Cliente</h4>
+            <div class="form-group" style="width:220px;">
+              <label>Status do Orçamento</label>
+              <select id="quote-status" class="form-control">
+                <option value="PENDENTE">🟡 Pendente (Em Análise)</option>
+                <option value="APROVADO">🟢 Aprovado pelo Cliente</option>
+                <option value="REPROVADO">🔴 Reprovado / Recusado</option>
+                <option value="CANCELADO">⚪ Cancelado</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Cliente (Nome/Razão Social) *</label>
+              <input type="text" id="quote-client-name" class="form-control" required placeholder="Nome do cliente">
+            </div>
+            <div class="form-group">
+              <label>CPF / CNPJ *</label>
+              <input type="text" id="quote-client-cpf-cnpj" class="form-control" placeholder="000.000.000-00">
+            </div>
+            <div class="form-group">
+              <label>Endereço *</label>
+              <input type="text" id="quote-client-address" class="form-control" placeholder="Rua, Número, Bairro">
+            </div>
+            <div class="form-group">
+              <label>Cidade *</label>
+              <input type="text" id="quote-client-city" class="form-control" placeholder="Cidade - UF">
+            </div>
+            <div class="form-group">
+              <label>Email *</label>
+              <input type="email" id="quote-client-email" class="form-control" placeholder="email@cliente.com">
+            </div>
+            <div class="form-group">
+              <label>Whatsapp *</label>
+              <input type="text" id="quote-client-whatsapp" class="form-control" placeholder="(19) 90000-0000">
+            </div>
+          </div>
+
+          <!-- SEÇÃO DE FOTOS (NÃO INCLUÍDAS NO PDF A4) -->
+          <div style="margin-top:1.5rem; margin-bottom:0.75rem;">
+            <h4 style="color:var(--text-primary); font-size:0.95rem;">Fotos do Local / Equipamentos (Anexos internos - Não saem na impressão PDF)</h4>
+            <input type="file" id="quote-photos-input" multiple accept="image/*" onchange="quotes.handlePhotoUpload(event)" style="display:none;">
+            <div class="photo-upload-area" onclick="document.getElementById('quote-photos-input').click()">
+              <i class="fa-solid fa-camera" style="font-size:1.5rem; color:var(--accent-red); margin-bottom:0.3rem;"></i>
+              <div style="font-size:0.85rem; font-weight:600;">Clique para adicionar fotos do orçamento</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">Formatos aceitos: JPG, PNG, WEBP</div>
+            </div>
+            <div class="photos-grid" id="quote-photos-grid">
+              <!-- Thumbnails de fotos anexadas -->
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem; margin-bottom:0.5rem;">
+            <h4 style="color:var(--text-primary); font-size:0.95rem;">Descrição dos Produtos / Serviços</h4>
+            <button type="button" class="btn btn-outline btn-sm" onclick="quotes.addItemRow()">
+              <i class="fa-solid fa-plus"></i> Adicionar Item
+            </button>
+          </div>
+
+          <div class="items-table-container">
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th style="width: 90px;">Qtd</th>
+                  <th>Descrição do Produto / Serviço</th>
+                  <th style="width: 140px;">Valor Unitário (R$)</th>
+                  <th style="width: 140px;">Valor Total (R$)</th>
+                  <th style="width: 50px;"></th>
+                </tr>
+              </thead>
+              <tbody id="quote-items-tbody">
+                <!-- Linhas dinâmicas -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="totals-summary">
+            <div class="total-row">
+              <span>Subtotal:</span>
+              <strong id="quote-calc-subtotal">R$ 0,00</strong>
+            </div>
+            <div class="total-row">
+              <span>Desconto (%):</span>
+              <input type="number" id="quote-discount-percentage" class="form-control" style="width: 100px; text-align:right;" value="0" min="0" max="100" step="0.5" oninput="quotes.recalculateTotals()">
+            </div>
+            <div class="total-row">
+              <span>Valor Desconto:</span>
+              <strong id="quote-calc-discount-val" style="color:#ef3636;">- R$ 0,00</strong>
+            </div>
+            <div class="total-row final">
+              <span>Total Final:</span>
+              <strong id="quote-calc-total-final">R$ 0,00</strong>
+            </div>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="quotes.closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="quotes.save()">Salvar Orçamento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================================
+       MODAL DE RECIBO (CRIAR / EDITAR)
+       ============================================================================ -->
+  <div class="modal-overlay" id="receipt-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="receipt-modal-title">Novo Recibo</h3>
+        <button class="modal-close" onclick="receipts.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="receipt-form">
+          <input type="hidden" id="receipt-id">
+          <input type="hidden" id="receipt-quote-id">
+          
+          <h4 style="color:var(--text-primary); margin-bottom:0.75rem; font-size:0.95rem;">Dados do Cliente</h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Cliente (Nome/Razão Social) *</label>
+              <input type="text" id="receipt-client-name" class="form-control" required placeholder="Nome do cliente">
+            </div>
+            <div class="form-group">
+              <label>CPF / CNPJ *</label>
+              <input type="text" id="receipt-client-cpf-cnpj" class="form-control" placeholder="000.000.000-00">
+            </div>
+            <div class="form-group">
+              <label>Endereço *</label>
+              <input type="text" id="receipt-client-address" class="form-control" placeholder="Rua, Número, Bairro">
+            </div>
+            <div class="form-group">
+              <label>Cidade *</label>
+              <input type="text" id="receipt-client-city" class="form-control" placeholder="Cidade - UF">
+            </div>
+            <div class="form-group">
+              <label>Email *</label>
+              <input type="email" id="receipt-client-email" class="form-control" placeholder="email@cliente.com">
+            </div>
+            <div class="form-group">
+              <label>Whatsapp *</label>
+              <input type="text" id="receipt-client-whatsapp" class="form-control" placeholder="(19) 90000-0000">
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem; margin-bottom:0.5rem;">
+            <h4 style="color:var(--text-primary); font-size:0.95rem;">Descrição dos Serviços / Produtos</h4>
+            <button type="button" class="btn btn-outline btn-sm" onclick="receipts.addItemRow()">
+              <i class="fa-solid fa-plus"></i> Adicionar Item
+            </button>
+          </div>
+
+          <div class="items-table-container">
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th style="width: 90px;">Qtd</th>
+                  <th>Descrição do Produto / Serviço</th>
+                  <th style="width: 140px;">Valor Unitário (R$)</th>
+                  <th style="width: 140px;">Valor Total (R$)</th>
+                  <th style="width: 50px;"></th>
+                </tr>
+              </thead>
+              <tbody id="receipt-items-tbody">
+                <!-- Linhas dinâmicas -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="totals-summary">
+            <div class="total-row">
+              <span>Subtotal:</span>
+              <strong id="receipt-calc-subtotal">R$ 0,00</strong>
+            </div>
+            <div class="total-row">
+              <span>Desconto (%):</span>
+              <input type="number" id="receipt-discount-percentage" class="form-control" style="width: 100px; text-align:right;" value="0" min="0" max="100" step="0.5" oninput="receipts.recalculateTotals()">
+            </div>
+            <div class="total-row">
+              <span>Valor Desconto:</span>
+              <strong id="receipt-calc-discount-val" style="color:#ef3636;">- R$ 0,00</strong>
+            </div>
+            <div class="total-row final">
+              <span>Total Final:</span>
+              <strong id="receipt-calc-total-final">R$ 0,00</strong>
+            </div>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="receipts.closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="receipts.save()">Salvar Recibo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================================
+       MODAL DE USUÁRIO (CRIAR / EDITAR)
+       ============================================================================ -->
+  <div class="modal-overlay" id="user-modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="user-modal-title">Novo Usuário</h3>
+        <button class="modal-close" onclick="auth.closeUserModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="user-form">
+          <input type="hidden" id="user-id">
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label>Nome Completo *</label>
+            <input type="text" id="user-fullname" class="form-control" required placeholder="ex: Willian Barbosa">
+          </div>
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label>Nome de Usuário *</label>
+            <input type="text" id="user-username" class="form-control" required placeholder="ex: willian">
+          </div>
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label>Senha *</label>
+            <input type="password" id="user-password" class="form-control" placeholder="Deixe em branco para não alterar">
+          </div>
+          <div class="form-group">
+            <label>Tipo de Permissão</label>
+            <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.3rem;">
+              <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;">
+                <input type="checkbox" id="user-perm-admin"> Administrador Mestre (Acesso total)
+              </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;">
+                <input type="checkbox" id="user-perm-create" checked> Criar Orçamentos e Recibos
+              </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;">
+                <input type="checkbox" id="user-perm-edit" checked> Editar Orçamentos e Recibos
+              </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer;">
+                <input type="checkbox" id="user-perm-delete"> Excluir Orçamentos e Recibos
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="auth.closeUserModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="auth.saveUser()">Salvar Usuário</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================================
+       OVERLAY DE VISUALIZAÇÃO E IMPRESSÃO (FOLHA A4 COM ASSINATURA ANEXADA)
+       ============================================================================ -->
+  <div class="document-preview-overlay" id="document-preview-modal">
+    <div class="preview-toolbar">
+      <div style="display:flex; align-items:center; gap:1rem; color:#fff;">
+        <h4 id="preview-doc-title" style="font-family:'Outfit',sans-serif;">Visualização do Documento</h4>
+      </div>
+      <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+        <button class="btn btn-success" id="btn-convert-quote" onclick="quotes.convertCurrentToReceipt()" style="display:none;">
+          <i class="fa-solid fa-arrow-right-arrow-left"></i> Converter em Recibo
+        </button>
+        <button class="btn btn-outline" onclick="app.downloadPdf()">
+          <i class="fa-solid fa-file-pdf" style="color:#ef3636;"></i> Baixar PDF
+        </button>
+        <button class="btn btn-secondary" onclick="app.shareWhatsapp()">
+          <i class="fa-brands fa-whatsapp" style="color:#25d366;"></i> Compartilhar WhatsApp (PDF)
+        </button>
+        <button class="btn btn-primary" onclick="window.print()">
+          <i class="fa-solid fa-print"></i> Imprimir / PDF
+        </button>
+        <button class="btn btn-outline" onclick="app.closePreviewModal()">
+          <i class="fa-solid fa-xmark"></i> Fechar
+        </button>
+      </div>
+    </div>
+
+    <div class="preview-body">
+      <!-- FOLHA IMPRESSA A4 -->
+      <div class="a4-paper" id="a4-paper-content">
+        
+        <!-- CABEÇALHO PADRÃO ELETROZONE -->
+        <div>
+          <div class="doc-header">
+            <div class="doc-header-logo">
+              <img src="/img/logo.png" alt="EletroZone Logo">
+            </div>
+            <div class="doc-header-center">
+              <div class="doc-company-name">EletroZone</div>
+              <div class="doc-company-sub">Segurança eletrônica</div>
+              <div class="doc-company-contact">Fone: (19) 98138-9982</div>
+              <div class="doc-company-contact">email: willian@eletrozone.net.br</div>
+              <div class="doc-type-title" id="doc-type-heading">Orçamento</div>
+            </div>
+          </div>
+
+          <div class="doc-info-bar">
+            <div><strong id="doc-code-lbl">CÓDIGO:</strong> <span id="doc-code-val">ORC-2026-001</span></div>
+            <div><strong>DATA DE EMISSÃO:</strong> <span id="doc-date-val">08/09/2026</span></div>
+          </div>
+
+          <!-- DADOS DO CLIENTE -->
+          <div class="doc-client-box">
+            <div class="doc-client-grid">
+              <div class="doc-client-field"><strong>cliente:</strong> <span id="doc-client-name">---</span></div>
+              <div class="doc-client-field"><strong>cpf/cnpj:</strong> <span id="doc-client-cpf">---</span></div>
+              <div class="doc-client-field"><strong>endereço:</strong> <span id="doc-client-address">---</span></div>
+              <div class="doc-client-field"><strong>cidade:</strong> <span id="doc-client-city">---</span></div>
+              <div class="doc-client-field"><strong>email:</strong> <span id="doc-client-email">---</span></div>
+              <div class="doc-client-field"><strong>Whatsapp:</strong> <span id="doc-client-whatsapp">---</span></div>
+            </div>
+          </div>
+
+          <!-- TABELA DE PRODUTOS / SERVIÇOS -->
+          <table class="doc-items-table">
+            <thead>
+              <tr>
+                <th style="width: 70px; text-align:center;">quantidade</th>
+                <th>descrição</th>
+                <th style="width: 140px; text-align:right;">valor unitário</th>
+                <th style="width: 140px; text-align:right;">valor total</th>
+              </tr>
+            </thead>
+            <tbody id="doc-items-tbody">
+              <!-- Itens preenchidos via JS -->
+            </tbody>
+          </table>
+
+          <!-- RESUMO E TOTAIS -->
+          <div class="doc-summary-box">
+            <table class="doc-summary-table">
+              <tr>
+                <td><strong>subtotal:</strong></td>
+                <td style="text-align:right;" id="doc-subtotal-val">R$ 0,00</td>
+              </tr>
+              <tr>
+                <td><strong>desconto:</strong></td>
+                <td style="text-align:right; color:#ef3636;" id="doc-discount-val">R$ 0,00</td>
+              </tr>
+              <tr class="total-row-final">
+                <td><strong>total final:</strong></td>
+                <td style="text-align:right;" id="doc-total-final-val">R$ 0,00</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- TEXTO DE DECLARAÇÃO EXCLUSIVO DO RECIBO -->
+          <div class="doc-declaration-box" id="doc-declaration-container" style="display:none;">
+            <span id="doc-declaration-text">
+              Declaro aos devidos fins, que recebi a contia de R$(total final) de (Cliente) portador do cpf/cnpj (cpf/cnpj), referente a serviços prestados descritos a cima.
+            </span>
+          </div>
+        </div>
+
+        <!-- ASSINATURA ANEXADA DA ELETROZONE -->
+        <div class="doc-signatures">
+          <div class="signature-container">
+            <img src="/img/signature.png" alt="Assinatura EletroZone" class="signature-img">
+            <div class="signature-line">
+              <strong>EletroZone Segurança Eletrônica</strong><br>
+              Responsável Técnico
+            </div>
+          </div>
+          <div class="signature-container">
+            <div style="height: 60px;"></div>
+            <div class="signature-line">
+              <strong id="doc-signature-client-name">Cliente</strong><br>
+              Aceite do Documento
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- RECIPIENTE DE NOTIFICAÇÕES TOAST -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- JAVASCRIPT DA APLICAÇÃO -->
+  <script src="/js/auth.js"></script>
+  <script src="/js/quotes.js"></script>
+  <script src="/js/receipts.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

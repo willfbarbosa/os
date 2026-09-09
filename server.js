@@ -6,6 +6,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const { initDatabase, dbAll, dbRun, dbGet } = require('./db');
 
 const app = express();
@@ -16,6 +17,8 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Servir arquivos estáticos do frontend (HTML, CSS, JS, Img)
+app.use(express.static(path.join(process.cwd(), 'public')));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use('/css', express.static(path.join(process.cwd(), 'css')));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/js', express.static(path.join(process.cwd(), 'js')));
@@ -55,6 +58,8 @@ async function recordLog(type, action, user, description) {
 
 // ROTA RAIZ (Servir SPA index.html)
 app.get('/', (req, res) => {
+  const publicIndex = path.join(process.cwd(), 'public', 'index.html');
+  if (fs.existsSync(publicIndex)) return res.sendFile(publicIndex);
   res.sendFile(path.join(process.cwd(), 'index.html'));
 });
 
@@ -608,6 +613,8 @@ app.delete('/api/logs', async (req, res) => {
 // CATCH-ALL SAFE: Apenas para navegação de páginas SPA
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
+  const publicIndex = path.join(process.cwd(), 'public', 'index.html');
+  if (fs.existsSync(publicIndex)) return res.sendFile(publicIndex);
   res.sendFile(path.join(process.cwd(), 'index.html'));
 });
 
