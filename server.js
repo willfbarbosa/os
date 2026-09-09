@@ -16,6 +16,12 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Servir arquivos estáticos do frontend (HTML, CSS, JS, Img)
+app.use('/css', express.static(path.join(process.cwd(), 'css')));
+app.use('/css', express.static(path.join(__dirname, 'css')));
+app.use('/js', express.static(path.join(process.cwd(), 'js')));
+app.use('/js', express.static(path.join(__dirname, 'js')));
+app.use('/img', express.static(path.join(process.cwd(), 'img')));
+app.use('/img', express.static(path.join(__dirname, 'img')));
 app.use(express.static(path.join(process.cwd())));
 app.use(express.static(path.join(__dirname)));
 
@@ -599,12 +605,9 @@ app.delete('/api/logs', async (req, res) => {
   }
 });
 
-// CATCH-ALL SAFE: Apenas para navegação de páginas SPA, protegendo arquivos estáticos 404
+// CATCH-ALL SAFE: Apenas para navegação de páginas SPA
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
-  if (req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/i)) {
-    return res.status(404).send('Not found');
-  }
   res.sendFile(path.join(process.cwd(), 'index.html'));
 });
 
