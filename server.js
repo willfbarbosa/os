@@ -138,17 +138,18 @@ app.post('/api/auth/users', async (req, res) => {
   try {
     const { id, fullname, username, password, permissions } = req.body;
     const permStr = JSON.stringify(permissions || { canCreate: true, canEdit: true, canDelete: false, isAdmin: false });
+    const role = permissions?.isAdmin ? 'ADMIN' : 'USER';
 
     if (id) {
       if (password && password.trim() !== '') {
         await dbRun(
-          `UPDATE users SET fullname = ?, username = ?, password = ?, permissions = ? WHERE id = ?`,
-          [fullname.trim(), username.trim().toLowerCase(), password, permStr, id]
+          `UPDATE users SET fullname = ?, username = ?, password = ?, role = ?, permissions = ? WHERE id = ?`,
+          [fullname.trim(), username.trim().toLowerCase(), password, role, permStr, id]
         );
       } else {
         await dbRun(
-          `UPDATE users SET fullname = ?, username = ?, permissions = ? WHERE id = ?`,
-          [fullname.trim(), username.trim().toLowerCase(), permStr, id]
+          `UPDATE users SET fullname = ?, username = ?, role = ?, permissions = ? WHERE id = ?`,
+          [fullname.trim(), username.trim().toLowerCase(), role, permStr, id]
         );
       }
       await recordLog('AUTH', 'USER_UPDATE', username, `Usuário ${username} atualizado`);
@@ -157,7 +158,7 @@ app.post('/api/auth/users', async (req, res) => {
       await dbRun(
         `INSERT INTO users (id, username, fullname, password, role, permissions, createdAt)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [newId, username.trim().toLowerCase(), fullname.trim(), password || '123456', permissions?.isAdmin ? 'ADMIN' : 'USER', permStr, new Date().toISOString()]
+        [newId, username.trim().toLowerCase(), fullname.trim(), password || '123456', role, permStr, new Date().toISOString()]
       );
       await recordLog('AUTH', 'USER_CREATE', username, `Novo usuário ${username} cadastrado`);
     }

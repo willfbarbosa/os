@@ -64,16 +64,21 @@
       </nav>
 
       <div class="user-footer">
-        <div class="user-info">
+        <div class="user-info" onclick="auth.editProfile()" style="cursor:pointer;" title="Clique para alterar seu usuário ou senha">
           <div class="user-avatar" id="sidebar-user-avatar">A</div>
           <div>
             <div class="user-name" id="sidebar-user-name">Administrador</div>
             <div class="user-role" id="sidebar-user-role">ADMIN</div>
           </div>
         </div>
-        <button class="btn-logout" onclick="auth.logout()" title="Sair do sistema">
-          <i class="fa-solid fa-right-from-bracket"></i>
-        </button>
+        <div style="display:flex; gap:0.3rem;">
+          <button class="btn-logout" onclick="auth.editProfile()" title="Alterar Usuário / Senha" style="margin-right:0.2rem;">
+            <i class="fa-solid fa-user-pen"></i>
+          </button>
+          <button class="btn-logout" onclick="auth.logout()" title="Sair do sistema">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
       </div>
     </aside>
 

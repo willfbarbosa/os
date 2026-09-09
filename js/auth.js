@@ -167,6 +167,11 @@ const auth = {
     document.getElementById('user-modal').classList.remove('active');
   },
 
+  editProfile() {
+    if (!this.currentUser) return;
+    this.openUserModal(this.currentUser.id);
+  },
+
   async saveUser() {
     const id = document.getElementById('user-id').value;
     const fullname = document.getElementById('user-fullname').value.trim();
@@ -195,6 +200,17 @@ const auth = {
       const data = await res.json();
       if (data.success) {
         app.showToast('Usuário salvo com sucesso!', 'success');
+
+        // Atualizar sessão se for o próprio usuário atualmente logado
+        if (this.currentUser && (this.currentUser.id === id || this.currentUser.username.toLowerCase() === username.toLowerCase())) {
+          this.currentUser.fullname = fullname;
+          this.currentUser.username = username;
+          this.currentUser.permissions = permissions;
+          if (permissions.isAdmin) this.currentUser.role = 'ADMIN';
+          localStorage.setItem('eletrozone_user', JSON.stringify(this.currentUser));
+          this.updateUIForUser();
+        }
+
         this.closeUserModal();
         this.loadUsers();
       } else {
