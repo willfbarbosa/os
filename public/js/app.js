@@ -143,26 +143,44 @@ const app = {
     const docType = isQuote ? 'Orcamento' : 'Recibo';
     const filename = `${docType}_${doc.code || 'EletroZone'}.pdf`;
 
-    // Clona a folha A4 para um container temporário na largura A4 exata (794px = 210mm a 96DPI)
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '0';
-    container.style.width = '794px';
-    container.style.background = '#ffffff';
-    container.style.zIndex = '-9999';
+    // Container temporário fixado exatamente na origem (top:0, left:0) na largura A4 exata (794px = 210mm a 96DPI)
+    // Garante que getBoundingClientRect().left seja 0, eliminando deslocamentos horizontais e áreas em branco na tela ou mobile
+    const renderContainer = document.createElement('div');
+    renderContainer.id = 'pdf-capture-container';
+    renderContainer.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 794px;
+      min-height: 1123px;
+      background: #ffffff;
+      z-index: 999999;
+      margin: 0;
+      padding: 0;
+      overflow: visible;
+      box-sizing: border-box;
+    `;
 
     const clone = element.cloneNode(true);
-    clone.style.width = '794px';
-    clone.style.minHeight = 'auto';
-    clone.style.padding = '15mm 18mm';
-    clone.style.boxSizing = 'border-box';
-    clone.style.margin = '0';
-    clone.style.boxShadow = 'none';
-    clone.style.display = 'block';
+    clone.style.cssText = `
+      width: 794px !important;
+      max-width: 794px !important;
+      min-width: 794px !important;
+      min-height: auto !important;
+      padding: 15mm 18mm !important;
+      box-sizing: border-box !important;
+      margin: 0 !important;
+      box-shadow: none !important;
+      display: block !important;
+      position: relative !important;
+      left: 0 !important;
+      top: 0 !important;
+      background: #ffffff !important;
+      transform: none !important;
+    `;
 
-    container.appendChild(clone);
-    document.body.appendChild(container);
+    renderContainer.appendChild(clone);
+    document.body.appendChild(renderContainer);
 
     const opt = {
       margin: [8, 8, 8, 8],
@@ -174,7 +192,10 @@ const app = {
         logging: false,
         scrollX: 0,
         scrollY: 0,
-        windowWidth: 1200
+        windowWidth: 1024,
+        x: 0,
+        y: 0,
+        width: 794
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
@@ -187,13 +208,13 @@ const app = {
       } else if (action === 'blob') {
         result = await html2pdf().set(opt).from(clone).output('blob');
       }
-      if (document.body.contains(container)) {
-        document.body.removeChild(container);
+      if (document.body.contains(renderContainer)) {
+        document.body.removeChild(renderContainer);
       }
       return result;
     } catch (err) {
-      if (document.body.contains(container)) {
-        document.body.removeChild(container);
+      if (document.body.contains(renderContainer)) {
+        document.body.removeChild(renderContainer);
       }
       throw err;
     }

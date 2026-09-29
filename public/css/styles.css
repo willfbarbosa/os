@@ -1220,26 +1220,6 @@ body {
     justify-content: center;
   }
   
-  .doc-header {
-    grid-template-columns: 1fr;
-    text-align: center;
-    gap: 10px;
-  }
-  
-  .doc-header-logo {
-    justify-content: center;
-  }
-  
-  .doc-client-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .doc-signatures {
-    flex-direction: column;
-    gap: 25px;
-    align-items: center;
-  }
-  
   .search-box {
     width: 100%;
   }
