@@ -843,7 +843,7 @@ body {
   color: #1e293b;
   width: 210mm;
   min-height: auto;
-  padding: 15mm 18mm;
+  padding: 15mm 15mm;
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   font-size: 13px;
   line-height: 1.5;

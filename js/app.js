@@ -131,7 +131,7 @@ const app = {
     document.getElementById('document-preview-modal').classList.remove('active');
   },
 
-  // HELPER ROBUSTO DE GERAÇÃO DE PDF A4 SEM CORTES (MOBILE E DESKTOP)
+  // HELPER ROBUSTO DE GERAÇÃO DE PDF A4 SEM CORTES E PERFEITAMENTE CENTRALIZADO
   async generatePdf(action = 'save') {
     if (!this.currentDocument) return null;
 
@@ -143,8 +143,7 @@ const app = {
     const docType = isQuote ? 'Orcamento' : 'Recibo';
     const filename = `${docType}_${doc.code || 'EletroZone'}.pdf`;
 
-    // Container temporário fixado exatamente na origem (top:0, left:0) na largura A4 exata (210mm)
-    // Garante que o documento ocupe exatamente 100% da largura A4 sem margens adicionais do PDF empurrarem o conteúdo para fora
+    // Container temporário fixado na origem (top:0, left:0) com a largura A4 exata (210mm)
     const renderContainer = document.createElement('div');
     renderContainer.id = 'pdf-capture-container';
     renderContainer.style.cssText = `
@@ -167,9 +166,9 @@ const app = {
       max-width: 210mm !important;
       min-width: 210mm !important;
       min-height: auto !important;
-      padding: 15mm 18mm !important;
+      padding: 15mm 15mm !important;
       box-sizing: border-box !important;
-      margin: 0 !important;
+      margin: 0 auto !important;
       box-shadow: none !important;
       display: block !important;
       position: relative !important;
@@ -183,7 +182,7 @@ const app = {
     document.body.appendChild(renderContainer);
 
     const opt = {
-      margin: 0, // Margem 0 no jsPDF pois a folha A4 possui seu próprio padding interno perfeito de 15mm/18mm
+      margin: 0, // Margem 0 no jsPDF pois a folha A4 possui seu próprio padding interno perfeito de 15mm
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
@@ -191,10 +190,7 @@ const app = {
         useCORS: true,
         logging: false,
         scrollX: 0,
-        scrollY: 0,
-        windowWidth: 1024,
-        x: 0,
-        y: 0
+        scrollY: 0
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
