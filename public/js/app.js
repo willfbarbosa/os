@@ -143,46 +143,40 @@ const app = {
     const docType = isQuote ? 'Orcamento' : 'Recibo';
     const filename = `${docType}_${doc.code || 'EletroZone'}.pdf`;
 
-    // Container temporário fixado na origem (top:0, left:0) com a largura A4 exata (210mm)
-    const renderContainer = document.createElement('div');
-    renderContainer.id = 'pdf-capture-container';
-    renderContainer.style.cssText = `
-      position: fixed;
-      top: 0;
+    // 1. Clona o documento para um container isolado com a largura útil exata da folha A4 (718px = 190mm)
+    const pdfWrapper = document.createElement('div');
+    pdfWrapper.style.cssText = `
+      position: absolute;
       left: 0;
-      width: 210mm;
-      min-height: 297mm;
+      top: 0;
+      width: 718px;
       background: #ffffff;
-      z-index: 999999;
+      z-index: -99999;
       margin: 0;
       padding: 0;
-      overflow: visible;
       box-sizing: border-box;
     `;
 
     const clone = element.cloneNode(true);
     clone.style.cssText = `
-      width: 210mm !important;
-      max-width: 210mm !important;
-      min-width: 210mm !important;
+      width: 718px !important;
+      max-width: 718px !important;
+      min-width: 718px !important;
       min-height: auto !important;
-      padding: 15mm 15mm !important;
-      box-sizing: border-box !important;
-      margin: 0 auto !important;
+      padding: 0 !important;
+      margin: 0 !important;
       box-shadow: none !important;
-      display: block !important;
-      position: relative !important;
-      left: 0 !important;
-      top: 0 !important;
       background: #ffffff !important;
-      transform: none !important;
+      display: block !important;
+      box-sizing: border-box !important;
     `;
 
-    renderContainer.appendChild(clone);
-    document.body.appendChild(renderContainer);
+    pdfWrapper.appendChild(clone);
+    document.body.appendChild(pdfWrapper);
 
+    // Margens uniformes de 10mm nos 4 lados da folha A4 (10mm esquerda + 190mm conteúdo + 10mm direita = 210mm A4)
     const opt = {
-      margin: 0, // Margem 0 no jsPDF pois a folha A4 possui seu próprio padding interno perfeito de 15mm
+      margin: [10, 10, 10, 10],
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
@@ -203,13 +197,13 @@ const app = {
       } else if (action === 'blob') {
         result = await html2pdf().set(opt).from(clone).output('blob');
       }
-      if (document.body.contains(renderContainer)) {
-        document.body.removeChild(renderContainer);
+      if (document.body.contains(pdfWrapper)) {
+        document.body.removeChild(pdfWrapper);
       }
       return result;
     } catch (err) {
-      if (document.body.contains(renderContainer)) {
-        document.body.removeChild(renderContainer);
+      if (document.body.contains(pdfWrapper)) {
+        document.body.removeChild(pdfWrapper);
       }
       throw err;
     }
