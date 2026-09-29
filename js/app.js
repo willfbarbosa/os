@@ -131,26 +131,80 @@ const app = {
     document.getElementById('document-preview-modal').classList.remove('active');
   },
 
-  // GERAÇÃO E DOWNLOAD DO ARQUIVO PDF LIMPO
-  async downloadPdf() {
-    if (!this.currentDocument) return;
+  // HELPER ROBUSTO DE GERAÇÃO DE PDF A4 SEM CORTES (MOBILE E DESKTOP)
+  async generatePdf(action = 'save') {
+    if (!this.currentDocument) return null;
 
     const element = document.getElementById('a4-paper-content');
-    const doc = this.currentDocument.data;
-    const filename = `${this.currentDocument.type === 'QUOTE' ? 'Orcamento' : 'Recibo'}_${doc.code || 'EletroZone'}.pdf`;
+    if (!element) return null;
 
-    this.showToast('Gerando arquivo PDF...', 'info');
+    const doc = this.currentDocument.data;
+    const isQuote = this.currentDocument.type === 'QUOTE';
+    const docType = isQuote ? 'Orcamento' : 'Recibo';
+    const filename = `${docType}_${doc.code || 'EletroZone'}.pdf`;
+
+    // Clona a folha A4 para um container temporário na largura A4 exata (794px = 210mm a 96DPI)
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = '794px';
+    container.style.background = '#ffffff';
+    container.style.zIndex = '-9999';
+
+    const clone = element.cloneNode(true);
+    clone.style.width = '794px';
+    clone.style.minHeight = 'auto';
+    clone.style.padding = '15mm 18mm';
+    clone.style.boxSizing = 'border-box';
+    clone.style.margin = '0';
+    clone.style.boxShadow = 'none';
+    clone.style.display = 'block';
+
+    container.appendChild(clone);
+    document.body.appendChild(container);
 
     const opt = {
       margin: [8, 8, 8, 8],
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: 1200
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     try {
-      await html2pdf().set(opt).from(element).save();
+      let result;
+      if (action === 'save') {
+        result = await html2pdf().set(opt).from(clone).save();
+      } else if (action === 'blob') {
+        result = await html2pdf().set(opt).from(clone).output('blob');
+      }
+      if (document.body.contains(container)) {
+        document.body.removeChild(container);
+      }
+      return result;
+    } catch (err) {
+      if (document.body.contains(container)) {
+        document.body.removeChild(container);
+      }
+      throw err;
+    }
+  },
+
+  // GERAÇÃO E DOWNLOAD DO ARQUIVO PDF LIMPO
+  async downloadPdf() {
+    if (!this.currentDocument) return;
+    try {
+      this.showToast('Gerando arquivo PDF...', 'info');
+      await this.generatePdf('save');
       this.showToast('PDF baixado com sucesso!', 'success');
     } catch (err) {
       console.error(err);
@@ -162,7 +216,6 @@ const app = {
   async shareWhatsapp() {
     if (!this.currentDocument) return;
 
-    const element = document.getElementById('a4-paper-content');
     const doc = this.currentDocument.data;
     const isQuote = this.currentDocument.type === 'QUOTE';
     const docType = isQuote ? 'Orçamento' : 'Recibo';
@@ -179,17 +232,9 @@ const app = {
     const phone = doc.clientWhatsapp ? doc.clientWhatsapp.replace(/\D/g, '') : '';
     const whatsappUrl = phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(messageText)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(messageText)}`;
 
-    const opt = {
-      margin: [8, 8, 8, 8],
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
     try {
       this.showToast('Gerando PDF para compartilhamento...', 'info');
-      const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+      const pdfBlob = await this.generatePdf('blob');
       const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
 
       // Se o navegador no celular suportar envio direto de arquivo Web Share API
@@ -208,7 +253,7 @@ const app = {
 
     // Fallback Desktop: Baixa o PDF e abre a conversa no WhatsApp para o usuário anexar
     try {
-      await html2pdf().set(opt).from(element).save();
+      await this.generatePdf('save');
       this.showToast('O PDF foi baixado! Anexe o arquivo na conversa do WhatsApp.', 'info');
       setTimeout(() => {
         window.open(whatsappUrl, '_blank');
